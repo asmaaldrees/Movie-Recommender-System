@@ -1,0 +1,20 @@
+BUILDING THE PROJECT ON ECLIPSE
+
+Here follows a simple step-to-step tutorial to build and execute the Java Application that runs with mahout project, based on the Project_Mahout source code. 
+The eclipse version is 3.5.1, and it presents the ant plugin.
+
+
+* download the code
+* click in File -> New -> Project ->Java from existing Ant Buildfile
+* select the existing build.xml inside the mahoutproject folder. the name "mahoutproject" must appear on "Project name"
+* click on Finish
+* the project will be created
+* to execute the project select the build.xml file and click in it with the right-button
+* Select Run As -> External Tools Configurations
+* In the "mahout build.xml" section you'll see a page with many tabs.
+* In the "Main" tab, in the Buildfile field select "Browse workspace" and then select the build.xml present in the Project_Mahout directory  
+* Go to the tab "Targets" and select the targets that you want to execute. You should select the "compile" target that compiles the src code. Then
+you can select the "recommend" target, to execute the recommendations.
+* Click on "Run"
+* The file should be compiled and executed, and a file categories-output.xml should be created.
+* It's possible to change the configurations parameters of the build file. You can change the user-id, the method to be used in the recommendation and even the place where you want to put the output.
