@@ -1,0 +1,198 @@
+<?xml version="1.0"?>
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+ -->
+
+<project name="Project_Mahout" basedir=".">
+  <property name="dest.dir" value="target/"/>
+  <property name="classes.dir" value="${dest.dir}/classes"/>
+
+  <target name="clean">
+    <delete dir="${dest.dir}/"/>
+  </target>
+
+  <path id="compile.classpath">
+    <fileset dir="lib">
+      <include name="*.jar"/>
+    </fileset>
+    <!--  I've prebuilt Mahout -->
+    <fileset dir="mahout-src/core/target/dependency/">
+      <include name="*.jar"/>
+    </fileset>
+    <fileset dir="mahout-src/utils/target/dependency/">
+      <include name="*.jar"/>
+    </fileset>
+    <fileset dir="mahout-src/examples/target/dependency/">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <path id="runtime.classpath">
+    <path refid="compile.classpath"/>
+    <path path="${classes.dir}"/>
+    <fileset dir="src/main/resources"/>
+  </path>
+
+  <target name="compile"
+          description="Compile the source code."
+          >
+    <mkdir dir="${classes.dir}"/>
+    <javac classpathref="compile.classpath"
+           destdir="${classes.dir}"
+           target="1.6"
+           source="1.6"
+           debug="on"
+           encoding="utf8"
+           sourcepath=""
+            >
+      <src path="src/main/java"/>
+    </javac>
+  </target>
+
+  <!-- Taste Options -->
+  <property name="neighbor.size" value="2"/>
+  <property name="user.id" value="2"/>
+  <property name="output" value="/Desktop/"/>
+  <!-- method options:
+  item-based _  1
+  slope one  _  2
+  user-based _  3
+  -->
+  <property name="method" value="2"/>
+  
+  <!-- version options:
+  LogLikelihoodSimilarity
+  PearsonCorrelationSimilarity
+  -->
+  <property name="version" value="PearsonCorrelationSimilarity"/>
+
+
+ <target name="recommend" depends="compile"
+          description="Gives a recommendation to a user, given an user id">
+    <echo>Getting similar items for user: ${user.id} with a neighborhood of ${neighbor.size}</echo>
+    <java classname="cf.GeneralRecommender"
+          fork="true" maxmemory="738m">
+      <classpath refid="runtime.classpath"/>       
+     <!--   <arg line="/Applications/MAMP/htdocs/SolimobileProject/ratings_categories.xml ${user.id} src/main/resources/categories.xml ${output} ${neighbor.size} ${method} ${version}"/>        -->
+  </java>
+  </target>
+
+	
+	 <!--src/main/resources/ratings-categories.xml -->
+
+  <!--
+   All targets below this line are for internal use only
+   -->
+  <!-- Packaging Targets for Grant -->
+  <path id="dw.classpath">
+    <fileset dir="tools">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+  <target name="article">
+    <!--
+    schemaFile="${dwDir}/schema/${dwVersion}/dw-document-${dwVersion}.xsd"
+            xslFile="${dwDir}/xsl/${dwVersion}/dw-document-html-${dwVersion}.xsl"
+
+     `$javapgm "$forceFactory" -cp "$mycp" DeveloperWorksXML "$xmlFile" "$schemaFile" "$xslFile"`
+     -->
+    <java dir="manuscript" classname="DeveloperWorksXML" fork="true">
+      <classpath refid="dw.classpath"/>
+      <jvmarg line="-Djavax.xml.transform.TransformerFactory=org.apache.xalan.processor.TransformerFactoryImpl"/>
+      <arg line="index.xml ../schema/5.12/dw-document-5.12.xsd ../xsl/5.12/dw-document-html-5.12.xsl"/>
+    </java>
+    <zip zipfile="${dest.dir}/article.zip">
+      <zipfileset dir="manuscript" prefix="intro-to-mahout"/>
+    </zip>
+  </target>
+
+  <target name="svn-up" unless="offline">
+    <exec command="svn" failonerror="false">
+      <arg value="update"/>
+      <arg value="mahout-src"/>
+    </exec>
+  </target>
+  <target name="mvn-install-off" if="offline">
+    <exec command="mvn" dir="mahout-src" failonerror="true">
+      <arg value="-o"/>
+      <arg value="-DskipTests=true"/>
+      <arg value="install"/>
+    </exec>
+  </target>
+  <target name="mvn-install" unless="offline">
+    <exec command="mvn" dir="mahout-src" failonerror="true">
+      <arg value="-DskipTests=true"/>
+      <arg value="install"/>
+    </exec>
+  </target>
+  <target name="update-mahout-libs">
+    <copy todir="lib">
+      <fileset dir="mahout-src/core/target">
+        <include name="mahout-core-0.2-SNAPSHOT.jar"/>
+      </fileset>
+      <fileset dir="mahout-src/utils/target">
+        <include name="mahout-utils-0.2-SNAPSHOT.jar"/>
+      </fileset>
+      <fileset dir="mahout-src/examples/target">
+        <include name="mahout-examples-0.2-SNAPSHOT.jar"/>
+      </fileset>
+    </copy>
+    <copy todir="hadoop">
+      <fileset dir="mahout-src/core/target">
+        <include name="*.job"/>
+      </fileset>
+      <fileset dir="mahout-src/examples/target">
+        <include name="*.job"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="update-mahout" depends="svn-up, mvn-install-off,mvn-install,update-mahout-libs"/>
+
+  <property name="pack.dir" value="${dest.dir}/package"/>
+
+  <target name="prepare-src" depends="compile">
+    <mkdir dir="${pack.dir}"/>
+    <copy todir="${pack.dir}/">
+      <fileset dir="${basedir}">
+        <include name="build.xml"/>
+      </fileset>
+    </copy>
+    <copy todir="${pack.dir}/mahout-src">
+      <fileset dir="mahout-src"/>
+    </copy>
+    <copy todir="${pack.dir}/hadoop">
+      <fileset dir="hadoop"/>
+    </copy>
+    <copy todir="${pack.dir}/lib">
+      <fileset dir="lib">
+        <include name="*.jar"/>
+        <exclude name="junit*.jar"/>
+      </fileset>
+    </copy>
+
+    <copy todir="${pack.dir}/src">
+      <fileset dir="src"/>
+    </copy>
+  </target>
+  <target name="package" depends="clean,prepare-src,article">
+    <zip zipfile="${dest.dir}/sample.zip">
+      <zipfileset dir="${pack.dir}" prefix="apache-mahout-examples"/>
+    </zip>
+  </target>
+
+</project>
